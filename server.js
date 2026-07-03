@@ -53,7 +53,7 @@ app.post("/render", async (req, res) => {
       timeout: 60000,
     });
     res.setHeader("Content-Type", "application/pdf");
-    res.send(pdf);
+    res.send(Buffer.from(pdf));
   } catch (err) {
     console.error("render failed:", err.message);
     res.status(500).json({ error: String(err.message).slice(0, 300) });

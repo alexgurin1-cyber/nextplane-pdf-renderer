@@ -1,13 +1,13 @@
 # NextPlane PDF renderer for Railway
 FROM ghcr.io/puppeteer/puppeteer:23.11.1
 
-ENV PUPPETEER_SKIP_CHROME_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+# Use the Chrome already bundled in this image (skip re-download at npm install)
+ENV PUPPETEER_SKIP_CHROME_DOWNLOAD=true
 
 WORKDIR /usr/src/app
-COPY package.json ./
+COPY --chown=pptruser:pptruser package.json ./
 RUN npm install --omit=dev
-COPY server.js ./
+COPY --chown=pptruser:pptruser server.js ./
 
 EXPOSE 8080
 CMD ["node", "server.js"]

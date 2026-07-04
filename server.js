@@ -41,8 +41,10 @@ app.post("/render", async (req, res) => {
     page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 1800, deviceScaleFactor: 2 });
     await page.goto(url, { waitUntil: "networkidle2", timeout: 90000 });
-    // Give charts/lazy sections time to finish
-    await page.evaluate(() => new Promise(r => setTimeout(r, 4000)));
+    // Wait for the page's readiness signal (charts + map painted); page sets a 20s hard fallback itself
+    await page.waitForFunction("window.__printReady === true", { timeout: 30000 }).catch(() => {});
+    // small settle delay for final paints
+    await page.evaluate(() => new Promise(r => setTimeout(r, 1500)));
     // Signal print CSS
     await page.emulateMediaType("print");
     const pdf = await page.pdf({

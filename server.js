@@ -50,7 +50,7 @@ app.post("/render", async (req, res) => {
     const pdf = await page.pdf({
       format: "Letter",
       printBackground: true,
-      margin: { top: "0.4in", bottom: "0.5in", left: "0.35in", right: "0.35in" },
+      margin: { top: "0", bottom: "0", left: "0", right: "0" }, // page adds its own dark-theme padding
       displayHeaderFooter: false,
       timeout: 60000,
     });

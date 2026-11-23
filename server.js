@@ -36,13 +36,19 @@ app.post("/render", async (req, res) => {
   }
 
   let page;
+  const t0 = Date.now();
   try {
     const browser = await getBrowser();
     page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 1800, deviceScaleFactor: 2 });
     await page.goto(url, { waitUntil: "networkidle2", timeout: 90000 });
-    // Wait for the page's readiness signal (charts + map painted); page sets a 20s hard fallback itself
-    await page.waitForFunction("window.__printReady === true", { timeout: 60000 }).catch(() => {});
+    // Wait for the page's readiness signal. /report-print sets __printReady and
+    // __reportReady together; /plan-mail-print and /plan-issue-print set
+    // __reportReady only. Waiting for __printReady alone made every plan PDF
+    // sit out the full 60 s, past the caller's 60 s timeout.
+    const ready = await page
+      .waitForFunction("window.__printReady === true || window.__reportReady === true", { timeout: 60000 })
+      .then(() => true, () => false);
     // small settle delay for final paints
     await page.evaluate(() => new Promise(r => setTimeout(r, 1500)));
     // Signal print CSS
@@ -54,10 +60,12 @@ app.post("/render", async (req, res) => {
       displayHeaderFooter: false,
       timeout: 60000,
     });
+    // Path only: the query string carries the print token.
+    console.log(`render ok ${parsed.pathname} ready=${ready} ms=${Date.now() - t0} bytes=${pdf.length}`);
     res.setHeader("Content-Type", "application/pdf");
     res.send(Buffer.from(pdf));
   } catch (err) {
-    console.error("render failed:", err.message);
+    console.error(`render failed ${parsed.pathname} ms=${Date.now() - t0}:`, err.message);
     res.status(500).json({ error: String(err.message).slice(0, 300) });
   } finally {
     if (page) await page.close().catch(() => {});
